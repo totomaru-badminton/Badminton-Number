@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>ととまるバド割 — 番号でダブルス組み合わせ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Zen+Kaku+Gothic+New:wght@500;700;900&amp;display=swap" rel="stylesheet">
+<style>
+  :root{
+    --court-green: #1F6F54;
+    --court-green-dark: #16523E;
+    --court-green-light: #2E8B67;
+    --bg: #F2F4EE;
+    --panel: #FFFFFF;
+    --ink: #14231F;
+    --ink-soft: #4B5A55;
+    --line: #DCE3DA;
+    --gold: #E8B93F;
+    --gold-dark: #C79A26;
+    --coral: #D9634A;
+    --coral-dark: #B84C36;
+    --court-line: rgba(255,255,255,0.92);
+    --radius: 14px;
+    --shadow: 0 2px 10px rgba(20,35,31,0.08), 0 1px 2px rgba(20,35,31,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:'Zen Kaku Gothic New','Inter',sans-serif; -webkit-tap-highlight-color:transparent;}
+  body{padding-bottom:40px;}
+  .display{font-family:'Oswald','Zen Kaku Gothic New',sans-serif; letter-spacing:0.02em;}
+
+  header.app{
+    background: linear-gradient(135deg, var(--court-green-dark), var(--court-green));
+    color:#fff; padding:22px 18px 60px;
+    position:relative; overflow:hidden;
+  }
+  header.app::after{
+    content:""; position:absolute; right:-30px; top:-30px; width:160px; height:160px;
+    border:3px solid rgba(255,255,255,0.15); border-radius:50%;
+  }
+  header.app::before{
+    content:""; position:absolute; left:-40px; bottom:-60px; width:180px; height:180px;
+    border:3px solid rgba(255,255,255,0.1); border-radius:50%;
+  }
+  .brand{display:flex; align-items:center; gap:10px; position:relative; z-index:1;}
+  .brand .mark{
+    width:34px; height:34px; border-radius:50%; background:var(--gold);
+    display:flex; align-items:center; justify-content:center; font-family:'Oswald';
+    font-weight:700; color:var(--court-green-dark); font-size:15px; flex-shrink:0;
+  }
+  .brand h1{font-family:'Oswald'; font-weight:700; font-size:20px; margin:0; letter-spacing:0.03em;}
+  .brand p{margin:2px 0 0; font-size:12px; opacity:0.85;}
+
+  nav.tabs{
+    position:relative; z-index:2; display:flex; gap:6px; margin:16px auto -46px;
+    max-width:640px; padding:0 14px;
+  }
+  nav.tabs button{
+    flex:1; border:none; padding:12px 6px; font-size:13px; font-weight:700;
+    font-family:'Zen Kaku Gothic New'; border-radius:12px 12px 0 0; cursor:pointer;
+    background:rgba(255,255,255,0.14); color:#fff; transition:all .15s;
+  }
+  nav.tabs button.active{background:var(--panel); color:var(--court-green-dark); box-shadow:0 -2px 8px rgba(0,0,0,0.08);}
+  nav.tabs button .badge{
+    display:inline-block; margin-left:5px; background:var(--gold); color:var(--court-green-dark);
+    font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;
+  }
+
+  main{max-width:640px; margin:0 auto; padding:60px 14px 20px;}
+  .panel{
+    background:var(--panel); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow);
+    margin-bottom:14px;
+  }
+  .panel h2{font-family:'Oswald'; font-size:15px; margin:0 0 4px; color:var(--court-green-dark);
+    text-transform:uppercase; letter-spacing:0.06em;}
+  .panel .sub{font-size:12.5px; color:var(--ink-soft); margin:0 0 14px; line-height:1.5;}
+
+  .row{display:flex; gap:8px;}
+  input[type=text], input[type=number], select{
+    font-family:inherit; font-size:14.5px; padding:11px 12px; border-radius:10px;
+    border:1.5px solid var(--line); width:100%; background:#fbfcfa; color:var(--ink);
+  }
+  input:focus, select:focus{outline:none; border-color:var(--court-green-light);}
+  button.btn{
+    font-family:'Zen Kaku Gothic New'; font-weight:700; font-size:14px; padding:11px 16px;
+    border-radius:10px; border:none; cursor:pointer; white-space:nowrap; transition:transform .08s, opacity .15s;
+  }
+  button.btn:active{transform:scale(0.97);}
+  button.btn.primary{background:var(--court-green); color:#fff;}
+  button.btn.primary:hover{background:var(--court-green-dark);}
+  button.btn.gold{background:var(--gold); color:var(--court-green-dark);}
+  button.btn.gold:hover{background:var(--gold-dark);}
+  button.btn.ghost{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
+  button.btn.ghost:hover{border-color:var(--ink-soft);}
+  button.btn.danger{background:#fff; color:var(--coral-dark); border:1.5px solid #F1CFC5;}
+  button.btn.danger:hover{background:#FDF2EF;}
+  button.btn.block{width:100%;}
+  button.btn:disabled{opacity:0.4; cursor:not-allowed;}
+  button.btn.sm{padding:6px 10px; font-size:12px; border-radius:8px;}
+
+  .memberList{display:flex; flex-direction:column; gap:8px;}
+  .memberRow{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; background:#fbfcfa;
+  }
+  .memberRow .name{font-weight:600; font-size:14.5px;}
+  .memberRow .meta{font-size:11.5px; color:var(--ink-soft);}
+
+  .checkGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px;}
+  label.checkItem{
+    display:flex; align-items:center; gap:8px; padding:10px 12px; border:1.5px solid var(--line);
+    border-radius:10px; cursor:pointer; background:#fbfcfa; font-size:14px; font-weight:600;
+    user-select:none;
+  }
+  label.checkItem.checked{background:#EAF5EF; border-color:var(--court-green-light); color:var(--court-green-dark);}
+  label.checkItem input{width:16px; height:16px; accent-color:var(--court-green);}
+
+  .statusPill{
+    display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700;
+    padding:3px 9px; border-radius:20px;
+  }
+  .statusPill.active{background:#EAF5EF; color:var(--court-green-dark);}
+  .statusPill.left{background:#FBEAE6; color:var(--coral-dark);}
+
+  .roundCard{
+    border:1.5px solid var(--line); border-radius:var(--radius); padding:14px; margin-bottom:12px; background:#fbfcfa;
+  }
+  .roundCard .roundHead{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;}
+  .compactRound{padding:10px 12px;}
+  .compactRound .roundHead{margin-bottom:7px;}
+  .matchList{display:flex;flex-direction:column;gap:6px;}
+  .compactMatch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:9px;font-size:13px;}
+  .compactMatch .courtLabel{min-width:52px;margin:0;font-size:10px;}
+  .compactMatch .team{font-weight:700;}
+  .compactMatch .vs{font-weight:700;color:var(--ink-soft);}
+  .compactMatch.activeMatch{background:#EAF5EF;border:2px solid var(--court-green-light);box-shadow:0 0 0 2px rgba(46,139,103,.08);}
+  .compactMatch.activeMatch .courtLabel{color:var(--court-green-dark);}
+  .activeBadge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:12px;background:var(--court-green);color:#fff;font-size:10px;font-weight:700;white-space:nowrap;}
+  .activeToggle{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;color:var(--ink-soft);}
+  .activeToggle.on{background:var(--court-green);color:#fff;border-color:var(--court-green);}
+
+  .runnableMatch{border-color:var(--gold)!important; box-shadow:0 0 0 2px rgba(232,185,63,.18);}
+  details.panel summary{list-style:none;}
+  details.panel summary::-webkit-details-marker{display:none;}
+  details.panel summary::before{content:'▸ '; color:var(--ink-soft);}
+  details.panel[open] summary::before{content:'▾ ';}
+
+  .roundCard .roundHead .num{font-family:'Oswald'; font-size:13px; font-weight:700; color:var(--court-green-dark); letter-spacing:0.05em;}
+  .courtsWrap{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px;}
+  .courtLabel{font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; letter-spacing:0.04em;}
+
+  table.stats{width:100%; border-collapse:collapse; font-size:13px;}
+  table.stats th, table.stats td{text-align:left; padding:8px 6px; border-bottom:1px solid var(--line);}
+  table.stats th{font-size:11px; text-transform:uppercase; color:var(--ink-soft); letter-spacing:0.04em;}
+  table.stats td.num{font-family:'Oswald'; font-weight:600;}
+
+  .empty{text-align:center; padding:30px 10px; color:var(--ink-soft); font-size:13.5px;}
+  .empty .icon{font-size:30px; margin-bottom:8px;}
+
+  .shareBox{display:flex; gap:8px; align-items:center;}
+  .shareBox input{font-size:12.5px; color:var(--ink-soft);}
+
+  .toast{
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px;
+    font-weight:600; box-shadow:var(--shadow); z-index:50; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+
+  .inlineForm{display:flex; gap:8px; margin-top:12px;}
+  .memberActions{display:flex;gap:5px;align-items:center;flex-shrink:0;}
+  .sortHint{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
+  .footNote{font-size:11.5px; color:var(--ink-soft); text-align:center; margin-top:6px; line-height:1.6;}
+
+  /* ---------- number mode ---------- */
+  .numberGrid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:8px;
+    margin-top:10px;
+  }
+  .numberBtn{
+    min-height:48px;
+    border:1.5px solid var(--line);
+    background:#fbfcfa;
+    color:var(--ink);
+    border-radius:11px;
+    font-family:'Oswald','Zen Kaku Gothic New',sans-serif;
+    font-size:18px;
+    font-weight:700;
+    cursor:pointer;
+    transition:all .12s;
+  }
+  .numberBtn.selected{
+    background:#EAF5EF;
+    border-color:var(--court-green-light);
+    color:var(--court-green-dark);
+    box-shadow:0 0 0 2px rgba(46,139,103,.08);
+  }
+  .numberBtn.activeNumber{
+    background:var(--court-green);
+    border-color:var(--court-green);
+    color:#fff;
+  }
+  .numberBtn.leftNumber{
+    background:#FBEAE6;
+    border-color:#F1CFC5;
+    color:var(--coral-dark);
+  }
+  .numberBtn:active{transform:scale(.96);}
+  .numberHint{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.55;
+    margin-top:8px;
+  }
+  .sessionTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .sessionCount{
+    font-family:'Oswald';
+    font-size:18px;
+    color:var(--court-green-dark);
+  }
+  .numberRows{display:flex;flex-direction:column;gap:7px;}
+  .numberRow{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:9px 11px;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    background:#fbfcfa;
+  }
+  .numberRow .bigNum{
+    font-family:'Oswald';
+    font-size:19px;
+    font-weight:700;
+  }
+  .numberRow .numMeta{
+    font-size:11.5px;
+    color:var(--ink-soft);
+  }
+  @media(max-width:420px){
+    .numberGrid{grid-template-columns:repeat(5,1fr);gap:6px;}
+    .numberBtn{min-height:44px;font-size:17px;}
+    .compactMatch{gap:5px;padding:8px 7px;font-size:12px;}
+    .compactMatch .courtLabel{min-width:47px;}
+  }
+
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="brand">
+    <div class="mark">🏸</div>
+    <div>
+      <h1>ととまるバド割</h1>
+      <p>参加者を番号で管理して、ダブルスを公平に自動作成。</p>
+    </div>
+    <span id="syncIndicator" style="display:none; margin-left:auto; font-size:11px; background:rgba(255,255,255,.18); padding:4px 9px; border-radius:20px; white-space:nowrap;">⏳ 保存待ち</span>
+  </div>
+  <nav class="tabs" style="display:none;"></nav>
+</header>
+
+<main id="main">
+    <div class="panel">
+      <h2>はじめに：共有データを作成</h2>
+      <p class="sub">最初の1回だけ、下のボタンで「みんなで共有するデータ」を作成してください。作成すると、この設定を反映したファイルが自動でダウンロードされます。</p>
+      <button class="btn primary block" id="createSharedBtn" style="font-size:15px; padding:14px;">共有データを作成する</button>
+    </div>
+    <div class="panel">
+      <h2>この後の流れ（あなただけの作業です）</h2>
+      <div class="memberList">
+        <div class="memberRow" style="align-items:flex-start;"><div><div class="name">① 共有データを作成</div><div class="meta">ボタンを押すと、共有IDを埋め込んだファイルが自動でダウンロードされます。</div></div></div>
+        <div class="memberRow" style="align-items:flex-start;"><div><div class="name">② GitHubのリポジトリに上書きアップロード</div><div class="meta">ダウンロードされたファイルを index.html という名前のまま、GitHubの「Add file」→「Upload files」で上書きアップロードしてください。</div></div></div>
+        <div class="memberRow" style="align-items:flex-start;"><div><div class="name">③ この画面を再読み込み</div><div class="meta">数分待ってからこのURLをもう一度開けば、以後は誰がこのURLを開いても同じメンバー一覧・試合表がそのまま共有されます。</div></div></div>
+      </div>
+    </div>
+  </main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script>
+/* ---------- storage helpers ----------
+   このアプリは、単体のHTMLファイルとして配布して使うことを想定しています
+   （Claudeアカウント不要・サーバーへのホスティング不要）。
+   みんなで共有するデータ（メンバー一覧・当日の試合表）は、Googleの無料の
+   リアルタイムデータベース（Firebase Realtime Database）に保存し、変更が
+   あった瞬間に全員の画面へ自動で配信されます（定期的に「変化ある？」と
+   聞きに行くポーリング方式ではありません）。
+   FIREBASE_CONFIGとSYNC_PATHは、運営者が一度だけ行うセットアップの際に
+   このファイル自体へ自動で書き込まれるので、以後はこのファイル1つを
+   配布するだけで済みます。 */
+let FIREBASE_CONFIG = {"apiKey":"AIzaSyDYmH7ftYi6xmu4iRwqb9ynSwtoRGykpII","authDomain":"badminton-number.firebaseapp.com","databaseURL":"https://badminton-number-default-rtdb.asia-southeast1.firebasedatabase.app","projectId":"badminton-number","storageBucket":"badminton-number.firebasestorage.app","messagingSenderId":"188883134589","appId":"1:188883134589:web:5e2cd7d06320aa1ba66914"};
+let SYNC_PATH = "totomaru/fpqdjd640mvyr2";
+
+function defaultState(){
+  return { members: [], courtCount: 2, session: null };
+}
+
+function normalizeState(raw){
+  const st = raw || defaultState();
+  if(!Array.isArray(st.members)) st.members = [];
+  if(typeof st.courtCount !== 'number') st.courtCount = 2;
+  if(st.session){
+    // 旧仕様（round単位＋activeMatchesキー）で保存されたデータを、
+    // 新仕様（試合を1件ずつ増やしていくフラットな matches 配列）へ移行する。
+    if(Array.isArray(st.session.rounds)){
+      const activeSet = new Set(st.session.activeMatches || []);
+      const matches = [];
+      st.session.rounds.forEach(round=>{
+        (round.matches||[]).forEach((m,i)=>{
+          const key = `${round.index}:${i}`;
+          matches.push({ no: matches.length+1, pair1:m[0], pair2:m[1], status: activeSet.has(key)?'active':'pending', played: activeSet.has(key) });
+        });
+      });
+      st.session.matches = matches;
+      delete st.session.rounds;
+      delete st.session.activeMatches;
+    }
+    if(!Array.isArray(st.session.matches)) st.session.matches = [];
+
+    // 先の試合を手動で何試合も組めるよう、予定中(pending)の試合は
+    // 参加者が重複していても削除しない。
+    // ただし、まったく同じ4人・同じペアの重複試合だけは整理する。
+    const seenPending = new Set();
+    const normalizedMatches = [];
+    for(const m of st.session.matches.slice().sort((a,b)=>(a.no||0)-(b.no||0))){
+      if(m.status === 'pending'){
+        const all = [...(m.pair1||[]), ...(m.pair2||[])];
+        const key = all.length===4
+          ? [pairKey(all[0],all[1]), pairKey(all[2],all[3])].sort().join('|')
+          : '';
+        if(key && seenPending.has(key)) continue;
+        if(key) seenPending.add(key);
+      }
+      normalizedMatches.push(m);
+    }
+    st.session.matches = normalizedMatches;
+
+    
+    // 番号モード用の互換補正。新しいセッションは num-1 ～ num-30 を使用する。
+    // 旧セッションの名前付き参加者は破壊せず、そのまま表示できるよう維持する。
+    Object.values(st.session.participants || {}).forEach((p, idx)=>{
+      if(typeof p.number !== 'number' && /^num-\d+$/.test(p.id)){
+        p.number=Number(p.id.slice(4));
+        p.name=`${p.number}番`;
+      }
+    });
+
+if(!st.session.partnerCounts) st.session.partnerCounts = {};
+    const participants = st.session.participants || {};
+    // 実績として数えるのは「実施中→試合終了」になった試合だけ。
+    // 旧データで played が無い終了試合は従来どおり実績として扱う（互換性維持）。
+    const doneMatches = st.session.matches.filter(m=>m.status==='done' && (m.played===true || typeof m.played==='undefined')); 
+    const actualGames = {};
+    const actualPartners = {};
+    Object.keys(participants).forEach(id=>{ actualGames[id]=0; });
+    for(const m of doneMatches){
+      const ids = [...(m.pair1||[]), ...(m.pair2||[])];
+      ids.forEach(id=>{ if(actualGames[id] !== undefined) actualGames[id] += 1; });
+      for(const pair of [m.pair1||[], m.pair2||[]]){
+        if(pair.length===2){
+          const k=pairKey(pair[0],pair[1]);
+          actualPartners[k]=(actualPartners[k]||0)+1;
+        }
+      }
+    }
+    st.session.partnerCounts = actualPartners;
+    Object.values(participants).forEach(p=>{
+      p.gamesPlayed = actualGames[p.id] || 0;
+      if(typeof p.lastScheduledMatchNo !== 'number') p.lastScheduledMatchNo = 0;
+      delete p.restStreak;
+    });
+
+    // 途中参加者が「0試合だから」と何試合も連続で優先されないようにする。
+    // 表示する実績 gamesPlayed は実際にプレーした回数のまま保持し、
+    // 組み合わせを選ぶ時だけ selectionOffset を加えた「選考上の試合数」を使う。
+    //
+    // 以前のバージョンで既に途中参加した人には selectionOffset が無いため、
+    // lastScheduledMatchNo > 0 の人を途中参加の可能性が高い人として自動移行する。
+    const activeForOffset = Object.values(participants).filter(p=>p.status==='active');
+    const currentAverage = activeForOffset.length
+      ? activeForOffset.reduce((sum,p)=>sum+(actualGames[p.id]||0),0) / activeForOffset.length
+      : 0;
+    Object.values(participants).forEach(p=>{
+      if(typeof p.selectionOffset !== 'number'){
+        const isLikelyLegacyLateJoiner = (p.lastScheduledMatchNo||0) > 0;
+        p.selectionOffset = isLikelyLegacyLateJoiner
+          ? Math.max(0, currentAverage - (p.gamesPlayed||0))
+          : 0;
+      }
+    });
+  }
+  return st;
+}
+
+let dbRef = null; // Firebase Realtime Databaseの参照先（購読中の場所）
+
+// Firebaseに接続し、以後はサーバー側からのプッシュでリアルタイムに同期する。
+// 呼び出し時点の最新データがまず届き、その後は誰かが変更するたびに自動で届く。
+function connectFirebase(){
+  if(!FIREBASE_CONFIG || !SYNC_PATH) return;
+  if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  if(dbRef) dbRef.off(); // 再接続時に購読が二重になるのを防ぐ
+  dbRef = firebase.database().ref(SYNC_PATH);
+
+  const firstLoadTimer = setTimeout(()=>{
+    if(!dataLoaded){ loadFailed = true; render(); }
+  }, 10000);
+
+  dbRef.on('value', (snapshot)=>{
+    clearTimeout(firstLoadTimer);
+    loadFailed = false;
+    dataLoaded = true;
+    const fresh = normalizeState(snapshot.val());
+    const freshJSON = JSON.stringify(fresh);
+    if(freshJSON === lastSavedJSON) return; // 自分がした変更が返ってきただけ
+    state = fresh;
+    lastSavedJSON = freshJSON;
+    render();
+  }, ()=>{
+    clearTimeout(firstLoadTimer);
+    loadFailed = true;
+    render();
+  });
+}
+
+async function saveState(s){
+  if(!dbRef) return true;
+  try{
+    await dbRef.set(s);
+    saveErrorShown = false; // 保存できたので、次に失敗した時はまた通知してよい状態に戻す
+    return true;
+  }catch(e){
+    // 同じ不通状態が続いている間、通知を連発させない。保存できていない
+    // データはローカルに残り続け、Firebase SDKが自動で再送を試みる。
+    if(!saveErrorShown){
+      saveErrorShown = true;
+      showToast('保存が一時的にできていません。データは保持したまま、自動で再送し続けます。');
+    }
+    return false;
+  }
+}
+
+// 初回セットアップ時のみ使用：新しい共有データの置き場所(パス)を作る
+async function createSharedStore(config, initial){
+  if(!firebase.apps.length) firebase.initializeApp(config);
+  const path = 'totomaru/' + uid() + uid(); // 第三者に推測されにくいランダムな置き場所
+  await firebase.database().ref(path).set(initial);
+  return path;
+}
+
+/* ---------- app state ---------- */
+let state = defaultState();
+let activeTab = 'match';
+let lastSavedJSON = '';
+let saveChain = Promise.resolve();
+let saveInFlight = false;
+let saveErrorShown = false; // 同じ通信不良の間、失敗通知を連発させないためのフラグ
+let loadFailed = false;
+let dataLoaded = false; // Firebaseから最初のデータを受け取るまでtrueにしない
+
+const FIREBASE_RULES_JSON = `{
+  "rules": {
+    "totomaru": {
+      "$id": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}`;
+
+/* ---------- setup screen (first run, before a shared store exists) ---------- */
+function renderSetupScreen(){
+  return `
+    <div class="panel">
+      <h2>はじめに：共有データを作成</h2>
+      <p class="sub">下の「① Firebaseの設定情報を取得」の手順で取得した設定情報（{ }を含むコード）を貼り付けて、ボタンを押してください。作成すると、この設定を反映したファイルが自動でダウンロードされます。</p>
+      <textarea id="firebaseConfigInput" rows="8" style="width:100%; font-family:monospace; font-size:12px; padding:10px; border:1px solid var(--line); border-radius:8px; resize:vertical;" placeholder='{
+  "apiKey": "...",
+  "authDomain": "...",
+  "databaseURL": "...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+      <button class="btn primary block" id="createSharedBtn" style="font-size:15px; padding:14px; margin-top:10px;">共有データを作成する</button>
+    </div>
+    <div class="panel">
+      <h2>① Firebaseの設定情報を取得（最初の1回だけ・約5分）</h2>
+      <div class="memberList">
+        <div class="memberRow" style="align-items:flex-start;"><div><div class="name">1. Firebaseコンソールを開く</div><div class="meta">https://console.firebase.google.com/ にアクセスし、お持ちのGoogleアカウントでログインします。</div></div></div>
+        <div class="memberRow" style="align-items:flex-start;"><div><div class="name">2. プロジェクトを作成</div><div class="meta">「プロジェクトを追加」→ 名前を入力（例：totomaru）→ Googleアナリティクスは「無効にする」でOK →「プロジェクトを作成」。</div></div></div>
+        <div class="memberRow" style="align-items:flex-start;"><div><div class="name">3. Realtime Databaseを有効化</div><div class="meta">左メニュー「構築」→「Realtime Database」→「データベースを作成」→ ロケーションは初期値のままでOK →「テストモードで開始」を選んで「有効にする」。</div></div></div>
+        <div class="memberRow" style="align-items:flex-start;"><div><div class="name">4. セキュリティルールを設定</div><div class="meta">「ルール」タブを開き、下の「② セキュリティルール」の内容をコピーして貼り付け、「公開」を押します。</div></div></div>
+        <div class="memberRow" style="align-items:flex-start;"><div><div class="name">5. アプリを登録して設定情報を取得</div><div class="meta">画面左上の歯車アイコン →「プロジェクトの設定」→ 下の方の「マイアプリ」→「&lt;/&gt;」（ウェブ）を選択 → ニックネームを入力して「アプリを登録」→ 表示される firebaseConfig の中身（{ }を含む部分）をすべてコピーして、上の欄に貼り付けてください。</div></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>② セキュリティルール（上の手順4でコピーする内容）</h2>
+      <pre style="background:var(--bg); padding:12px; border-radius:8px; font-size:12px; overflow-x:auto; white-space:pre-wrap;">${escapeHtml(FIREBASE_RULES_JSON)}</pre>
+    </div>
+  `;
+}
+
+function bindSetupEvents(){
+  const btn = document.getElementById('createSharedBtn');
+  if(!btn) return;
+  btn.onclick = async ()=>{
+    const raw = (document.getElementById('firebaseConfigInput').value || '').trim();
+    let config;
+    try{
+      config = JSON.parse(raw);
+    }catch(e){
+      showToast('設定情報の形式が正しくありません。コピーした内容をそのまま貼り付けてください。');
+      return;
+    }
+    if(!config.databaseURL){
+      showToast('databaseURLが含まれていません。Firebaseコンソールからコピーし直してください。');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = '作成中…';
+    try{
+      const initial = defaultState();
+      const path = await createSharedStore(config, initial);
+      FIREBASE_CONFIG = config;
+      SYNC_PATH = path;
+      state = initial;
+      lastSavedJSON = JSON.stringify(state);
+      dataLoaded = true;
+      triggerDownload(buildSharedFile(config, path), 'totomaru-badminton-shared.html');
+      showToast('共有データを作成しました。ダウンロードしたファイルをメンバーに送ってください。');
+      activeTab = 'members';
+      connectFirebase();
+      render();
+    }catch(e){
+      showToast('作成に失敗しました。設定情報とインターネット接続を確認してもう一度お試しください。');
+      btn.disabled = false;
+      btn.textContent = '共有データを作成する';
+    }
+  };
+}
+
+function buildSharedFile(config, path){
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  return html
+    .replace(/let FIREBASE_CONFIG = [^;]*;/, `let FIREBASE_CONFIG = ${JSON.stringify(config)};`)
+    .replace(/let SYNC_PATH = [^;]*;/, `let SYNC_PATH = ${JSON.stringify(path)};`);
+}
+
+function triggerDownload(text, filename){
+  const blob = new Blob([text], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function pairKey(a,b){ return [a,b].sort().join('|'); }
+
+/* ---------- toast ---------- */
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------- persistence wrapper ----------
+   画面は即座に更新しつつ、共有サーバーへの保存は必ず1件ずつ順番に
+   行う（同時に複数の保存が走ると、後から送ったはずのデータが先に
+   届いた古いデータに上書きされ、試合が消えたように見える不具合の
+   原因になっていたため）。 */
+async function persist(msg){
+  if(msg) showToast(msg);
+  render();
+  saveInFlight = true;
+  saveChain = saveChain.then(()=> saveState(state)).then((ok)=>{
+    // 保存が成功した時だけ「サーバーと一致した」とみなす。
+    // 失敗時にここでlastSavedJSONを更新してしまうと、実際には
+    // サーバーに反映されていない変更を「保存済み」と誤認し、
+    // 次の自動同期で古いサーバーのデータに上書きされてしまう
+    // （登録メンバーや試合が消えて見える不具合の原因だった）。
+    if(ok) lastSavedJSON = JSON.stringify(state);
+    saveInFlight = false;
+    render(); // 「保存待ち」表示の状態を更新するため
+  });
+  await saveChain;
+}
+
+/* ---------- match generation logic ----------
+   試合は「実施中かどうか」とは独立に、先の試合表として何件でも
+   前もって組んでおける。実際にコートが空いたタイミングで、
+   その中から実施できる試合を選んで「実施中」にする運用。 */
+function activeParticipants(){
+  if(!state.session) return [];
+  return Object.values(state.session.participants).filter(p=>p.status==='active');
+}
+
+// 現在「実施中」になっている試合に出ている参加者ID
+function busyParticipantIds(){
+  const s=state.session;
+  if(!s) return new Set();
+  return new Set(s.matches.filter(m=>m.status==='active').flatMap(m=>[...m.pair1,...m.pair2]));
+}
+
+// 空いているコート数（コート数 − 実施中の試合数）
+function courtsFreeCount(){
+  const s=state.session;
+  if(!s) return 0;
+  const activeCount = s.matches.filter(m=>m.status==='active').length;
+  return Math.max(0, state.courtCount - activeCount);
+}
+
+// 先の試合表の中から、今すぐ実施できる試合（未実施かつ、4人全員が他の
+// 試合で実施中でなく、コートに空きがある）の試合番号を返す。
+function runnableMatchNos(){
+  const s=state.session;
+  if(!s) return [];
+  const freeCourts=courtsFreeCount();
+  if(freeCourts<=0) return [];
+
+  const busy = busyParticipantIds();
+  const used = new Set(busy);
+  const runnable=[];
+
+  // 空きコート数を超えて「実施可能」を出さない。
+  // 同じ参加者が複数の予定試合に入っている場合も、先の試合を優先する。
+  const pending=[...s.matches]
+    .filter(m=>m.status==='pending')
+    .sort((a,b)=>(a.no||0)-(b.no||0));
+
+  for(const m of pending){
+    if(runnable.length>=freeCourts) break;
+    const ids=[...m.pair1,...m.pair2];
+    const ok=ids.length===4 && ids.every(id=>
+      s.participants[id] &&
+      s.participants[id].status==='active' &&
+      !used.has(id)
+    );
+    if(ok){
+      runnable.push(m.no);
+      ids.forEach(id=>used.add(id));
+    }
+  }
+  return runnable;
+}
+
+// 試合履歴から「対戦回数テーブル」と「直前パートナーマップ」をまとめて構築
+function buildMatchStats(s, includePlanned=false){
+  const faced = {};   // faced[a][b] = 同じ試合に出た回数
+  const lastPartner = {};  // lastPartner[id] = 最後に組んだパートナーid
+  const lastMatchNo = {};  // 各人の最後の試合no
+
+  for(const m of s.matches){
+    // 実績集計は終了試合だけ。先の試合を作るときだけ、予定・実施中も
+    // 「これから組む予定」として公平性の計算に加える。
+    if(!includePlanned && m.status !== 'done') continue;
+    const all = [...(m.pair1||[]), ...(m.pair2||[])];
+    if(all.length!==4) continue;
+    for(let i=0;i<all.length;i++){
+      for(let j=i+1;j<all.length;j++){
+        const a=all[i], b=all[j];
+        if(!faced[a]) faced[a]={};
+        if(!faced[b]) faced[b]={};
+        faced[a][b]=(faced[a][b]||0)+1;
+        faced[b][a]=(faced[b][a]||0)+1;
+      }
+    }
+    for(const pair of [m.pair1||[], m.pair2||[]]){
+      if(pair.length!==2) continue;
+      const [a,b]=pair;
+      if(!(a in lastMatchNo)||m.no>=lastMatchNo[a]){ lastPartner[a]=b; lastMatchNo[a]=m.no; }
+      if(!(b in lastMatchNo)||m.no>=lastMatchNo[b]){ lastPartner[b]=a; lastMatchNo[b]=m.no; }
+    }
+  }
+  return { faced, lastPartner };
+}
+
+// 4人の全組み合わせ3通りを試してスコア最小のペア割りを返す
+function bestSplit(stats, partnerCounts, four){
+  const { faced, lastPartner } = stats;
+  const splits=[
+    [[four[0],four[1]],[four[2],four[3]]],
+    [[four[0],four[2]],[four[1],four[3]]],
+    [[four[0],four[3]],[four[1],four[2]]]
+  ];
+  let best=null, bestScore=Infinity;
+  for(const [p1,p2] of splits){
+    const a=p1[0].id,b=p1[1].id,c=p2[0].id,d=p2[1].id;
+    // 直前パートナーと組む → 最大ペナルティ
+    const lastPenalty=
+      (lastPartner[a]===b||lastPartner[b]===a?10000:0)+
+      (lastPartner[c]===d||lastPartner[d]===c?10000:0);
+    // 通算パートナー回数 × 100
+    const partnerScore=
+      (partnerCounts[pairKey(a,b)]||0)*100+
+      (partnerCounts[pairKey(c,d)]||0)*100;
+    // 対戦相手との同試合回数
+    const oppScore=
+      ((faced[a]&&faced[a][c])||0)+
+      ((faced[a]&&faced[a][d])||0)+
+      ((faced[b]&&faced[b][c])||0)+
+      ((faced[b]&&faced[b][d])||0);
+    const score=lastPenalty+partnerScore+oppScore;
+    if(score<bestScore){bestScore=score;best=[p1,p2];}
+  }
+  return best;
+}
+
+// 組み合わせ選択用の試合数。
+ // 途中参加者は参加時点の全体平均を selectionOffset として持つため、
+ // 実績が0でも「0試合の人を追いつかせるまで連続優先」にはならない。
+ // 画面に表示する gamesPlayed はあくまで実際にプレーした回数のまま。
+function selectionGames(p){
+  return (p.gamesPlayed||0) + (p.selectionOffset||0);
+}
+
+function currentSelectionAverage(s){
+  const active = Object.values(s.participants||{}).filter(p=>p.status==='active');
+  if(!active.length) return 0;
+  return active.reduce((sum,p)=>sum+selectionGames(p),0) / active.length;
+}
+
+function pendingScheduledCount(s, id){
+  return s.matches.filter(m=>m.status==='pending' &&
+    [...(m.pair1||[]), ...(m.pair2||[])].includes(id)
+  ).length;
+}
+
+function pendingGroupKey(m){
+  const all=[...(m.pair1||[]), ...(m.pair2||[])];
+  if(all.length!==4) return '';
+  return [pairKey(all[0],all[1]), pairKey(all[2],all[3])].sort().join('|');
+}
+
+function generateNextMatch(){
+  const s = state.session;
+  if(!s) return {error:'本日の練習を開始してください。'};
+
+  const allActive = activeParticipants();
+  if(allActive.length < 4) return {error:'4人以上の参加者が必要です。'};
+
+  const freeCourts = courtsFreeCount();
+  const runnable = runnableMatchNos();
+
+  // 「＋試合を追加」は1つだけ。
+  // 空きコートがあり、まだ実施可能な試合が足りなければ、今すぐ実施できる試合を作る。
+  if(freeCourts > runnable.length){
+    const busy = busyParticipantIds();
+    const reserved = new Set();
+    for(const no of runnable){
+      const m=s.matches.find(x=>x.no===no);
+      if(m) [...(m.pair1||[]), ...(m.pair2||[])].forEach(id=>reserved.add(id));
+    }
+    const available = allActive.filter(p=>!busy.has(p.id) && !reserved.has(p.id));
+    if(available.length < 4) return {error:'次に入れる参加者が4人以上いません。'};
+
+    const four = chooseBestFour(s, available, {includePendingLoad:false});
+    if(!four) return {error:'次の試合を作れる4人が見つかりません。'};
+    return makeMatchFromFour(s, four, false);
+  }
+
+  // コートがすべて埋まっている、または実施可能な試合がすでに揃っている場合は、
+  // 「先の予定」を1試合追加する。予定は仮予約なので、現在実施中の人も
+  // ここでは除外しない。実際に開始するときに、その時点の状況で再評価する。
+  const futurePool = allActive;
+  const four = chooseBestFour(s, futurePool, {includePendingLoad:true, avoidDuplicatePending:true});
+  if(!four) return {error:'先の試合を作れる4人が見つかりません。'};
+  return makeMatchFromFour(s, four, true);
+}
+
+// 予定試合を実際に開始するときの再評価。
+// 予定時点の4人が全員入れるならその組み合わせを維持し、
+// 1人でも実施中・退出済みなら、その時点で空いている参加者から公平に組み直す。
+function prepareMatchForStart(m){
+  const s=state.session;
+  if(!s || !m || m.status!=='pending') return {match:m, changed:false};
+
+  const busy=busyParticipantIds();
+  const ids=[...(m.pair1||[]), ...(m.pair2||[])];
+  const originalAvailable = ids.length===4 && ids.every(id=>
+    s.participants[id] && s.participants[id].status==='active' && !busy.has(id)
+  );
+
+  if(originalAvailable) return {match:m, changed:false};
+
+  const available=activeParticipants().filter(p=>!busy.has(p.id));
+  if(available.length<4) return {error:'現在空いている参加者が4人未満のため、この試合を開始できません。'};
+
+  // 先行予定はロックしない。実際に開始する瞬間の終了済み試合数を最優先して再選出する。
+  const four=chooseBestFour(s, available, {includePendingLoad:false});
+  if(!four) return {error:'現在の状況で公平な4人を選べません。'};
+
+  const split=bestSplit(buildMatchStats(s),s.partnerCounts,four);
+  m.pair1=[split[0][0].id,split[0][1].id];
+  m.pair2=[split[1][0].id,split[1][1].id];
+  return {match:m, changed:true};
+}
+
+function splitScore(stats, partnerCounts, four){
+  const { faced, lastPartner } = stats;
+  const splits=[
+    [[four[0],four[1]],[four[2],four[3]]],
+    [[four[0],four[2]],[four[1],four[3]]],
+    [[four[0],four[3]],[four[1],four[2]]]
+  ];
+  let bestScore=Infinity;
+  for(const [p1,p2] of splits){
+    const a=p1[0].id,b=p1[1].id,c=p2[0].id,d=p2[1].id;
+    const lastPenalty=
+      (lastPartner[a]===b||lastPartner[b]===a?10000:0)+
+      (lastPartner[c]===d||lastPartner[d]===c?10000:0);
+    const partnerScore=
+      (partnerCounts[pairKey(a,b)]||0)*100+
+      (partnerCounts[pairKey(c,d)]||0)*100;
+    const oppScore=
+      ((faced[a]&&faced[a][c])||0)+((faced[a]&&faced[a][d])||0)+
+      ((faced[b]&&faced[b][c])||0)+((faced[b]&&faced[b][d])||0);
+    bestScore=Math.min(bestScore,lastPenalty+partnerScore+oppScore);
+  }
+  return bestScore;
+}
+
+function buildPartnerCountsFromStats(s, includePlanned=false){
+  const counts={};
+  for(const m of s.matches){
+    if(!includePlanned && m.status!=='done') continue;
+    if(includePlanned && m.status==='done') {
+      // 終了試合も含める
+    }
+    for(const pair of [m.pair1||[],m.pair2||[]]){
+      if(pair.length===2){
+        const k=pairKey(pair[0],pair[1]);
+        counts[k]=(counts[k]||0)+1;
+      }
+    }
+  }
+  return counts;
+}
+
+// 直近の予定も含めた連戦数を返す。
+// 例：第12・13・14試合すべてに出ていれば、次を作る時点で streak は3。
+function recentMatchStreak(s, id){
+  const matches=[...s.matches].sort((a,b)=>(b.no||0)-(a.no||0));
+  let streak=0;
+  for(const m of matches){
+    if(m.status==='done' || m.status==='pending' || m.status==='active'){
+      const ids=[...(m.pair1||[]), ...(m.pair2||[])];
+      if(ids.includes(id)) streak++;
+      else break;
+    }
+  }
+  return streak;
+}
+
+function chooseBestFour(s, pool, options={}){
+  if(pool.length<4) return null;
+  const includePendingLoad = options.includePendingLoad !== false;
+  const avoidDuplicatePending = options.avoidDuplicatePending === true;
+  const stats=buildMatchStats(s, includePendingLoad);
+  const partnerCounts=buildPartnerCountsFromStats(s, includePendingLoad);
+
+  // 直前の試合に出た人を全員休ませられるなら、まずその人たちは候補から外す。
+  const latestNo=s.matches.reduce((mx,m)=>Math.max(mx,m.no||0),0);
+  const latest=s.matches.filter(m=>(m.no||0)===latestNo);
+  const latestIds=new Set(latest.flatMap(m=>[...(m.pair1||[]), ...(m.pair2||[])]));
+  const restedPool=pool.filter(p=>!latestIds.has(p.id));
+  const candidatePool=restedPool.length>=4 ? restedPool : [...pool];
+
+  // 「誰と一緒の4人だったか」「誰と同じ試合に出たか」を数える。
+  // これを4人選びの段階から評価することで、途中参加者が複数いても
+  // その2人だけが毎回セットで選ばれるのを防ぐ。
+  const together={};
+  const groupCounts={};
+  const recentGroups=[];
+  for(const m of s.matches){
+    if(!includePendingLoad && m.status!=='done') continue;
+    const ids=[...(m.pair1||[]), ...(m.pair2||[])];
+    if(ids.length!==4) continue;
+    const g=ids.slice().sort().join('|');
+    groupCounts[g]=(groupCounts[g]||0)+1;
+    recentGroups.push({no:m.no||0, ids:new Set(ids)});
+    for(let i=0;i<ids.length;i++){
+      for(let j=i+1;j<ids.length;j++){
+        const k=pairKey(ids[i],ids[j]);
+        together[k]=(together[k]||0)+1;
+      }
+    }
+  }
+  recentGroups.sort((a,b)=>b.no-a.no);
+
+  let best=null,bestScore=Infinity;
+  const n=candidatePool.length;
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) for(let k=j+1;k<n;k++) for(let l=k+1;l<n;l++){
+    const four=[candidatePool[i],candidatePool[j],candidatePool[k],candidatePool[l]];
+    const ids=four.map(p=>p.id);
+    const sortedIds=ids.slice().sort();
+    const groupKey=sortedIds.join('|');
+
+    if(avoidDuplicatePending){
+      const duplicate=s.matches.some(m=>m.status==='pending' &&
+        [...(m.pair1||[]), ...(m.pair2||[])].slice().sort().join('|')===groupKey);
+      if(duplicate) continue;
+    }
+
+    const pendingLoad=four.reduce((sum,p)=>sum+(includePendingLoad?pendingScheduledCount(s,p.id):0),0);
+    const selectionTotal=four.reduce((sum,p)=>sum+selectionGames(p),0);
+    const fairnessSpread=Math.max(...four.map(p=>selectionGames(p)))-Math.min(...four.map(p=>selectionGames(p)));
+    const streak=four.reduce((sum,p)=>sum+recentMatchStreak(s,p.id),0);
+
+    // 同じ4人組・同じ人同士の同試合を強く避ける。
+    // 特に「途中参加した2人がずっと一緒」を防ぐため、4人中の6組すべての
+    // 共起回数を評価し、直近の試合で一緒だった人ほど大きく不利にする。
+    let togetherPenalty=0;
+    for(let a=0;a<ids.length;a++) for(let b=a+1;b<ids.length;b++){
+      togetherPenalty += (together[pairKey(ids[a],ids[b])]||0) * 20000;
+      const recentIndex=recentGroups.findIndex(g=>g.ids.has(ids[a]) && g.ids.has(ids[b]));
+      if(recentIndex===0) togetherPenalty += 500000;
+      else if(recentIndex===1) togetherPenalty += 150000;
+      else if(recentIndex===2) togetherPenalty += 50000;
+    }
+    const exactGroupPenalty=(groupCounts[groupKey]||0)*5000000;
+
+    // 4人を選ぶ時点でも「その4人ならどんなペアになるか」を評価する。
+    // これにより、同じパートナーの固定化を4人選択段階から抑える。
+    const pairing=splitScore(stats,partnerCounts,four);
+
+    // 優先順位：休憩 > 予定の偏り > 同じ4人/同じ組み合わせの繰り返し > 試合数。
+    // 途中参加者の0試合を埋めるために、同じ人たちを何度も集めることはしない。
+    const score=
+      streak*1000000000 +
+      pendingLoad*100000000 +
+      exactGroupPenalty +
+      togetherPenalty +
+      pairing*1000 +
+      selectionTotal*100000 +
+      fairnessSpread*50000;
+
+    if(score<bestScore){bestScore=score;best=four;}
+  }
+  return best;
+}
+function makeMatchFromFour(s, four, includePlanned=false){
+  const maxNo=s.matches.reduce((mx,m)=>Math.max(mx,m.no||0),0);
+  // 先の予定を作るときは、既に予定されているペアも避ける。
+  // 実施可能な試合を作るときは、実際に終了した試合だけを実績として使う。
+  const stats=buildMatchStats(s, includePlanned);
+  const partnerCounts=buildPartnerCountsFromStats(s, includePlanned);
+  const split=bestSplit(stats,partnerCounts,four);
+  const [p1,p2]=split;
+  return {no:maxNo+1,pair1:[p1[0].id,p1[1].id],pair2:[p2[0].id,p2[1].id]};
+}
+
+function commitMatch(m){
+  const s = state.session;
+  s.matches.push({ no:m.no, pair1:m.pair1, pair2:m.pair2, status:'pending', played:false });
+  [...m.pair1,...m.pair2].forEach(id=>{
+    if(s.participants[id]) s.participants[id].lastScheduledMatchNo = m.no;
+  });
+}
+
+/* ---------- rendering ---------- */
+function render(){
+  const nav = document.querySelector('nav.tabs');
+  const main = document.getElementById('main');
+
+  if(!FIREBASE_CONFIG || !SYNC_PATH){
+    nav.style.display='none';
+    main.innerHTML = renderSetupScreen();
+    bindSetupEvents();
+    return;
+  }
+
+  if(loadFailed){
+    nav.style.display='none';
+    main.innerHTML = renderLoadFailedScreen();
+    const retryBtn = document.getElementById('retryLoadBtn');
+    if(retryBtn) retryBtn.onclick = ()=>init();
+    return;
+  }
+
+  if(!dataLoaded){
+    nav.style.display='none';
+    main.innerHTML = `<div class="panel"><div class="empty"><div class="icon">🔄</div>読み込み中…</div></div>`;
+    return;
+  }
+
+  nav.style.display='none';
+
+  const syncIndicator = document.getElementById('syncIndicator');
+  if(syncIndicator){
+    syncIndicator.style.display = (JSON.stringify(state)!==lastSavedJSON) ? 'inline-block' : 'none';
+  }
+
+  main.innerHTML = renderMainScreen();
+  bindEvents();
+}
+
+function renderLoadFailedScreen(){
+  return `<div class="panel"><div class="empty">
+    <div class="icon">📡</div>
+    データの読み込みに失敗しました。<br>通信環境をご確認のうえ、もう一度お試しください。<br><br>
+    <button class="btn primary" id="retryLoadBtn">🔄 再読み込み</button>
+  </div></div>`;
+}
+
+function renderMainScreen(){
+  if(!state.session) return renderNumberStartScreen();
+  return renderNumberSessionScreen();
+}
+
+function renderNumberStartScreen(){
+  const defaultNumbers = Array.from({length:10},(_,i)=>i+1);
+  return `
+    <div class="panel">
+      <div class="sessionTop">
+        <div>
+          <h2>今日の参加者をセット</h2>
+          <p class="sub" style="margin-bottom:4px;">名前登録は不要です。参加する番号をタップしてください。</p>
+        </div>
+        <div class="sessionCount"><span id="selectedNumberCount">10</span>人</div>
+      </div>
+
+      <div class="numberGrid" id="startNumberGrid">
+        ${Array.from({length:30},(_,i)=>{
+          const n=i+1, selected=defaultNumbers.includes(n);
+          return `<button type="button" class="numberBtn ${selected?'selected':''}"
+                    data-action="toggleStartNumber" data-number="${n}">${n}</button>`;
+        }).join('')}
+      </div>
+      <div class="numberHint">
+        最初は<strong>1～10番</strong>が選択されています。11番以降もタップすれば追加できます。
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>コート数</h2>
+      <p class="sub">同時に使えるコート数です。</p>
+      <div class="row" style="max-width:140px;">
+        <input type="number" id="courtCountInput" min="1" max="10" value="${state.courtCount}">
+      </div>
+    </div>
+
+    <button class="btn primary block" id="startSessionBtn" style="font-size:15px;padding:14px;">
+      本日の練習を開始する
+    </button>
+
+    <div class="panel" style="margin-top:14px;">
+      <h2>使い方</h2>
+      <div class="numberHint" style="font-size:12.5px;">
+        ① 最初に参加者を番号で選択<br>
+        ② 途中で帰る人は「退出」<br>
+        ③ 後から来た人は、その番号を「参加」に追加<br>
+        ④ 試合終了を押すと、実際に出た試合数だけ集計<br><br>
+        ※番号は<strong>1～30番</strong>まで使えます。
+      </div>
+    </div>
+  `;
+}
+
+function renderNumberSessionScreen(){
+  const s=state.session;
+  const active=activeParticipants();
+  const left=Object.values(s.participants).filter(p=>p.status==='left');
+  const joined=new Set(Object.keys(s.participants).map(String));
+  const availableNumbers=Array.from({length:30},(_,i)=>i+1)
+    .filter(n=>!joined.has(numberId(n)));
+  const runnable=runnableMatchNos();
+  const pending=s.matches.filter(m=>m.status!=='done');
+  const done=s.matches.filter(m=>m.status==='done');
+  const freeCourts=courtsFreeCount();
+  const stats=Object.values(s.participants).sort((a,b)=>
+    Number(a.number||999)-Number(b.number||999)
+  );
+
+  return `
+    <div class="panel">
+      <div class="sessionTop">
+        <div>
+          <h2>本日の参加状況</h2>
+          <p class="sub" style="margin-bottom:2px;">
+            参加中 <strong>${active.length}人</strong> ／
+            ${state.courtCount}面 ／ 空き ${freeCourts}面
+          </p>
+        </div>
+        <button class="btn primary" id="addMatchBtn" ${active.length>=4?'':'disabled'}>＋ 試合を追加</button>
+      </div>
+      <div class="numberRows" style="margin-top:12px;">
+        ${active.length===0 ? `<div class="empty">参加中の番号がありません。</div>` :
+          active.sort((a,b)=>Number(a.number)-Number(b.number)).map(p=>`
+            <div class="numberRow">
+              <div>
+                <span class="bigNum">${escapeHtml(p.name)}</span>
+                <span class="numMeta">　${p.gamesPlayed}試合</span>
+              </div>
+              <button class="btn ghost sm" data-action="leaveParticipant" data-id="${p.id}">退出</button>
+            </div>
+          `).join('')}
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>途中参加・再参加</h2>
+      <p class="sub">後から来た人は番号をタップして追加。退出した人は「再参加」で戻せます。</p>
+      <div class="numberGrid">
+        ${availableNumbers.map(n=>
+          `<button type="button" class="numberBtn" data-action="addNumber" data-number="${n}">${n}</button>`
+        ).join('')}
+      </div>
+      ${left.length ? `
+        <div style="margin-top:14px;">
+          <div class="numberHint" style="margin-bottom:7px;">退出済み</div>
+          <div class="numberRows">
+            ${left.sort((a,b)=>Number(a.number)-Number(b.number)).map(p=>`
+              <div class="numberRow">
+                <div>
+                  <span class="bigNum">${escapeHtml(p.name)}</span>
+                  <span class="numMeta">　${p.gamesPlayed}試合</span>
+                </div>
+                <button class="btn gold sm" data-action="rejoinParticipant" data-id="${p.id}">再参加</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>` : ''}
+    </div>
+
+    <div class="panel">
+      <div class="sessionTop">
+        <div>
+          <h2>試合表</h2>
+          <p class="sub" style="margin:0;">「実施中」にした試合の人は次の試合に入りません。</p>
+        </div>
+        <button class="btn ghost sm" id="courtCountApplyBtn">コート数変更</button>
+      </div>
+      <div class="row" style="max-width:140px;margin-top:10px;">
+        <input type="number" id="courtCountInputLive" min="1" max="10" value="${state.courtCount}">
+      </div>
+
+      ${runnable.length>0 ? `
+        <div class="panel" style="background:#FFF8E6;border:1.5px solid var(--gold);margin-top:12px;margin-bottom:10px;">
+          <p class="sub" style="margin:0;color:var(--ink);">
+            <b>▶ 今すぐ実施できる試合：</b>第${runnable.join('試合・第')}試合
+          </p>
+        </div>` : ''}
+
+      ${pending.length===0
+        ? `<div class="empty"><div class="icon">🏸</div>まだ試合がありません。<br>「＋ 試合を追加」から作成してください。</div>`
+        : `<div class="matchList">${pending.map(m=>renderMatchRow(m,s,runnable.includes(m.no))).join('')}</div>`}
+    </div>
+
+    ${done.length>0 ? `
+      <details class="panel">
+        <summary style="cursor:pointer;font-weight:700;color:var(--ink-soft);font-size:13px;">
+          終了した試合（${done.length}件）
+        </summary>
+        <div class="matchList" style="margin-top:10px;">
+          ${done.slice().reverse().map(m=>renderMatchRow(m,s,false)).join('')}
+        </div>
+      </details>` : ''}
+
+    <div class="panel">
+      <h2>参加者ごとの試合数</h2>
+      <table class="stats">
+        <thead><tr><th>番号</th><th>試合数</th><th>状態</th></tr></thead>
+        <tbody>
+          ${stats.map(p=>`
+            <tr>
+              <td>${escapeHtml(p.name)}</td>
+              <td class="num">${p.gamesPlayed}</td>
+              <td><span class="statusPill ${p.status==='active'?'active':'left'}">
+                ${p.status==='active'?'参加中':'退出'}
+              </span></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <button class="btn danger block" id="endSessionBtn">
+      本日の練習を終了してリセット
+    </button>
+  `;
+}
+
+function numberId(n){ return `num-${n}`; }
+
+function renderMatchRow(m, session, isRunnable){
+  const numberOf=id=>(session.participants[id] && session.participants[id].name) || '?';
+  const isActive = m.status==='active';
+  const isDone = m.status==='done';
+  return `<div class="compactMatch ${isActive?'activeMatch':''} ${isRunnable&&!isDone?'runnableMatch':''}">
+    <span class="courtLabel">第${m.no}試合</span>
+    <span class="team">${escapeHtml(numberOf(m.pair1[0]))}・${escapeHtml(numberOf(m.pair1[1]))}</span>
+    <span class="vs">vs</span>
+    <span class="team">${escapeHtml(numberOf(m.pair2[0]))}・${escapeHtml(numberOf(m.pair2[1]))}</span>
+    ${isActive?'<span class="activeBadge">● 実施中</span>':''}
+    ${!isDone && !isActive && isRunnable?'<span class="activeBadge" style="background:var(--gold);color:var(--court-green-dark);">▶ 実施可能</span>':''}
+    ${isDone?'<span class="statusPill left">終了</span>':''}
+    ${!isDone && isActive?`<button class="activeToggle on" data-action="toggleActiveMatch" data-match="${m.no}">実施中を解除</button>`:''}
+    ${!isDone && !isActive?`<button class="activeToggle" data-action="toggleActiveMatch" data-match="${m.no}">実施中にする</button>`:''}
+    ${!isDone?`<button class="btn gold sm" data-action="finishMatch" data-match="${m.no}">試合終了</button>`:''}
+  </div>`;
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- events ---------- */
+function bindEvents(){
+
+  // 開始前：番号選択
+  document.querySelectorAll('[data-action="toggleStartNumber"]').forEach(btn=>{
+    btn.onclick=()=>{
+      btn.classList.toggle('selected');
+      const count=document.querySelectorAll('#startNumberGrid .numberBtn.selected').length;
+      const el=document.getElementById('selectedNumberCount');
+      if(el) el.textContent=count;
+    };
+  });
+
+  const startBtn=document.getElementById('startSessionBtn');
+  if(startBtn){
+    startBtn.onclick=async()=>{
+      const selected=Array.from(document.querySelectorAll('#startNumberGrid .numberBtn.selected'))
+        .map(btn=>Number(btn.dataset.number))
+        .sort((a,b)=>a-b);
+
+      if(selected.length<4){
+        showToast('4人以上選択してください');
+        return;
+      }
+
+      const courtInput=document.getElementById('courtCountInput');
+      const courtCount=Math.max(1,Math.min(10,parseInt(courtInput.value)||1));
+      state.courtCount=courtCount;
+
+      const participants={};
+      selected.forEach(n=>{
+        const id=numberId(n);
+        participants[id]={
+          id,
+          number:n,
+          name:`${n}番`,
+          status:'active',
+          gamesPlayed:0,
+          selectionOffset:0,
+          lastScheduledMatchNo:0
+        };
+      });
+
+      state.session={
+        startedAt:Date.now(),
+        participants,
+        matches:[],
+        partnerCounts:{}
+      };
+      await persist('本日の練習を開始しました');
+    };
+  }
+
+  // 途中参加：未使用番号を追加
+  document.querySelectorAll('[data-action="addNumber"]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const n=Number(btn.dataset.number);
+      if(!Number.isInteger(n) || n<1 || n>30) return;
+
+      const id=numberId(n);
+      if(state.session.participants[id]){
+        if(state.session.participants[id].status==='left'){
+          state.session.participants[id].status='active';
+          state.session.participants[id].selectionOffset=Math.max(
+            state.session.participants[id].selectionOffset||0,
+            currentSelectionAverage(state.session)-state.session.participants[id].gamesPlayed
+          );
+          await persist(`${n}番を再参加にしました`);
+        }
+        return;
+      }
+
+      const baseline=currentSelectionAverage(state.session);
+      state.session.participants[id]={
+        id,
+        number:n,
+        name:`${n}番`,
+        status:'active',
+        gamesPlayed:0,
+        selectionOffset:Math.max(0,baseline),
+        lastScheduledMatchNo:state.session.matches.length
+      };
+      await persist(`${n}番が途中参加しました`);
+    };
+  });
+
+  // 退出
+  document.querySelectorAll('[data-action="leaveParticipant"]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const p=state.session.participants[btn.dataset.id];
+      if(!p) return;
+      p.status='left';
+      await persist(`${p.name}を退出にしました`);
+    };
+  });
+
+  // 再参加
+  document.querySelectorAll('[data-action="rejoinParticipant"]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const p=state.session.participants[btn.dataset.id];
+      if(!p) return;
+      p.status='active';
+      p.selectionOffset=Math.max(
+        p.selectionOffset||0,
+        currentSelectionAverage(state.session)-p.gamesPlayed
+      );
+      await persist(`${p.name}が再参加しました`);
+    };
+  });
+
+  // コート数
+  const courtLive=document.getElementById('courtCountInputLive');
+  const courtApply=document.getElementById('courtCountApplyBtn');
+  if(courtLive && courtApply){
+    courtApply.onclick=async()=>{
+      state.courtCount=Math.max(1,Math.min(10,parseInt(courtLive.value)||1));
+      await persist('コート数を更新しました');
+    };
+  }
+
+  // 試合追加
+  const addMatchBtn=document.getElementById('addMatchBtn');
+  if(addMatchBtn){
+    addMatchBtn.onclick=async()=>{
+      const result=generateNextMatch();
+      if(result.error){showToast(result.error);return;}
+      commitMatch(result);
+      const freeCourts=courtsFreeCount();
+      await persist(freeCourts>0 ? '次に実施できる試合を追加しました' : '先の予定試合を追加しました');
+    };
+  }
+
+  // 練習終了
+  const endBtn=document.getElementById('endSessionBtn');
+  if(endBtn){
+    endBtn.onclick=async()=>{
+      if(!confirm('本日の練習を終了し、試合表と参加状況をリセットします。よろしいですか？')) return;
+      state.session=null;
+      await persist('練習を終了しました');
+    };
+  }
+
+  // 実施中切替
+  document.querySelectorAll('[data-action="toggleActiveMatch"]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const no=Number(btn.dataset.match);
+      const m=state.session.matches.find(x=>x.no===no);
+      if(!m) return;
+
+      if(m.status==='active'){
+        m.status='pending';
+        m.played=false;
+        const runnable=runnableMatchNos();
+        const msg=runnable.length>0
+          ? `実施中を解除しました。▶ 次に実施できるのは第${runnable.join('試合・第')}試合です。`
+          : '実施中を解除しました';
+        await persist(msg);
+      }else{
+        if(courtsFreeCount()<=0){
+          showToast('現在、空いているコートがありません。');
+          return;
+        }
+        const prepared=prepareMatchForStart(m);
+        if(prepared.error){showToast(prepared.error);return;}
+        m.status='active';
+        m.played=false;
+        await persist(prepared.changed
+          ? '実施時点の参加状況に合わせて組み直し、実施中にしました'
+          : '実施中にしました');
+      }
+    };
+  });
+
+  // 試合終了
+  document.querySelectorAll('[data-action="finishMatch"]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const no=Number(btn.dataset.match);
+      const m=state.session.matches.find(x=>x.no===no);
+      if(!m) return;
+
+      const wasActive=m.status==='active';
+      m.status='done';
+      m.played=wasActive;
+
+      if(wasActive){
+        const ids=[...(m.pair1||[]),...(m.pair2||[])];
+        ids.forEach(id=>{
+          if(state.session.participants[id]){
+            state.session.participants[id].gamesPlayed=
+              (state.session.participants[id].gamesPlayed||0)+1;
+          }
+        });
+
+        for(const pair of [m.pair1||[],m.pair2||[]]){
+          if(pair.length===2){
+            const k=pairKey(pair[0],pair[1]);
+            state.session.partnerCounts[k]=(state.session.partnerCounts[k]||0)+1;
+          }
+        }
+      }
+
+      const runnable=runnableMatchNos();
+      const msg=runnable.length>0
+        ? `第${no}試合を終了しました。▶ 次に実施できるのは第${runnable.join('試合・第')}試合です。`
+        : `第${no}試合を終了しました`;
+      await persist(msg);
+    };
+  });
+}
+
+/* ---------- init ---------- */
+function init(){
+  if(!FIREBASE_CONFIG || !SYNC_PATH){
+    render();
+    return;
+  }
+  loadFailed = false;
+  render(); // データ到着前は「読み込み中…」を表示
+  connectFirebase(); // 以後はFirebaseからのプッシュでリアルタイムに同期される
+}
+init();
+</script>
+
+
+</body></html>
