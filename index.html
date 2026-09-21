@@ -1117,6 +1117,7 @@ function renderMatchScreen(){
   const runnable=runnableMatchNos();
   const pending=s.matches.filter(m=>m.status!=='done');
   const done=s.matches.filter(m=>m.status==='done');
+  const stats=Object.values(s.participants).sort((a,b)=>Number(a.number||999)-Number(b.number||999));
   const freeCourts=courtsFreeCount();
 
   return `
@@ -1165,6 +1166,8 @@ function renderMatchScreen(){
           </tbody>
         </table>
       </div>` : ''}
+
+    <button class="btn danger block" id="endSessionBtnMatch" style="margin-top:14px;">本日の練習を終了してリセット</button>
   `;
 }
 
@@ -1281,6 +1284,8 @@ function bindEvents(){
         matches:[],
         partnerCounts:{}
       };
+      // 練習開始後は、そのまま試合追加画面へ移動
+      activeTab='match';
       await persist('本日の練習を開始しました');
     };
   }
@@ -1364,15 +1369,19 @@ function bindEvents(){
     };
   }
 
-  // 練習終了
-  const endBtn=document.getElementById('endSessionBtn');
-  if(endBtn){
+  // 練習終了（参加者管理タブ・試合追加タブの両方から実行可能）
+  const endBtns=[
+    document.getElementById('endSessionBtn'),
+    document.getElementById('endSessionBtnMatch')
+  ].filter(Boolean);
+  endBtns.forEach(endBtn=>{
     endBtn.onclick=async()=>{
       if(!confirm('本日の練習を終了し、試合表と参加状況をリセットします。よろしいですか？')) return;
       state.session=null;
+      activeTab='participants';
       await persist('練習を終了しました');
     };
-  }
+  });
 
   // 実施中切替
   document.querySelectorAll('[data-action="toggleActiveMatch"]').forEach(btn=>{
