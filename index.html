@@ -1103,16 +1103,6 @@ function renderParticipantScreen(){
       </div>
     </div>
 
-    <div class="panel">
-      <h2>参加者ごとの試合数</h2>
-      <table class="stats">
-        <thead><tr><th>番号</th><th>試合数</th><th>状態</th></tr></thead>
-        <tbody>
-          ${stats.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td class="num">${p.gamesPlayed}</td><td><span class="statusPill ${p.status==='active'?'active':'left'}">${p.status==='active'?'参加中':'退出'}</span></td></tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-
     <button class="btn danger block" id="endSessionBtn">本日の練習を終了してリセット</button>
   `;
 }
@@ -1160,10 +1150,21 @@ function renderMatchScreen(){
     </div>
 
     ${done.length>0 ? `
-      <details class="panel">
+      <details class="panel" open>
         <summary style="cursor:pointer;font-weight:700;color:var(--ink-soft);font-size:13px;">終了した試合（${done.length}件）</summary>
         <div class="matchList" style="margin-top:10px;">${done.slice().reverse().map(m=>renderMatchRow(m,s,false)).join('')}</div>
-      </details>` : ''}
+      </details>
+
+      <div class="panel">
+        <h2>参加者ごとの試合数</h2>
+        <p class="sub">終了した試合だけをカウントしています。</p>
+        <table class="stats">
+          <thead><tr><th>番号</th><th>試合数</th><th>状態</th></tr></thead>
+          <tbody>
+            ${stats.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td class="num">${p.gamesPlayed}</td><td><span class="statusPill ${p.status==='active'?'active':'left'}">${p.status==='active'?'参加中':'退出'}</span></td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
   `;
 }
 
