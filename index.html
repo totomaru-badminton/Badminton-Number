@@ -266,7 +266,10 @@
     </div>
     <span id="syncIndicator" style="display:none; margin-left:auto; font-size:11px; background:rgba(255,255,255,.18); padding:4px 9px; border-radius:20px; white-space:nowrap;">⏳ 保存待ち</span>
   </div>
-  <nav class="tabs" style="display:none;"></nav>
+  <nav class="tabs" style="display:none;">
+    <button data-tab="participants" class="active">参加者管理</button>
+    <button data-tab="match">試合追加</button>
+  </nav>
 </header>
 
 <main id="main">
@@ -462,7 +465,7 @@ async function createSharedStore(config, initial){
 
 /* ---------- app state ---------- */
 let state = defaultState();
-let activeTab = 'match';
+let activeTab = 'participants';
 let lastSavedJSON = '';
 let saveChain = Promise.resolve();
 let saveInFlight = false;
@@ -543,7 +546,7 @@ function bindSetupEvents(){
       dataLoaded = true;
       triggerDownload(buildSharedFile(config, path), 'totomaru-badminton-shared.html');
       showToast('共有データを作成しました。ダウンロードしたファイルをメンバーに送ってください。');
-      activeTab = 'members';
+      activeTab = 'participants';
       connectFirebase();
       render();
     }catch(e){
@@ -1002,7 +1005,7 @@ function render(){
     return;
   }
 
-  nav.style.display='none';
+  nav.style.display='flex';
 
   const syncIndicator = document.getElementById('syncIndicator');
   if(syncIndicator){
@@ -1022,89 +1025,39 @@ function renderLoadFailedScreen(){
 }
 
 function renderMainScreen(){
+  const nav = document.querySelector('nav.tabs');
+  if(nav){
+    nav.querySelectorAll('button[data-tab]').forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.tab===activeTab);
+    });
+  }
+  if(activeTab==='match') return renderMatchScreen();
+  return renderParticipantScreen();
+}
+
+function renderParticipantScreen(){
   if(!state.session) return renderNumberStartScreen();
-  return renderNumberSessionScreen();
-}
 
-function renderNumberStartScreen(){
-  const defaultNumbers = Array.from({length:10},(_,i)=>i+1);
-  return `
-    <div class="panel">
-      <div class="sessionTop">
-        <div>
-          <h2>今日の参加者をセット</h2>
-          <p class="sub" style="margin-bottom:4px;">名前登録は不要です。参加する番号をタップしてください。</p>
-        </div>
-        <div class="sessionCount"><span id="selectedNumberCount">10</span>人</div>
-      </div>
-
-      <div class="numberGrid" id="startNumberGrid">
-        ${Array.from({length:30},(_,i)=>{
-          const n=i+1, selected=defaultNumbers.includes(n);
-          return `<button type="button" class="numberBtn ${selected?'selected':''}"
-                    data-action="toggleStartNumber" data-number="${n}">${n}</button>`;
-        }).join('')}
-      </div>
-      <div class="numberHint">
-        最初は<strong>1～10番</strong>が選択されています。11番以降もタップすれば追加できます。
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>コート数</h2>
-      <p class="sub">同時に使えるコート数です。</p>
-      <div class="row" style="max-width:140px;">
-        <input type="number" id="courtCountInput" min="1" max="10" value="${state.courtCount}">
-      </div>
-    </div>
-
-    <button class="btn primary block" id="startSessionBtn" style="font-size:15px;padding:14px;">
-      本日の練習を開始する
-    </button>
-
-    <div class="panel" style="margin-top:14px;">
-      <h2>使い方</h2>
-      <div class="numberHint" style="font-size:12.5px;">
-        ① 最初に参加者を番号で選択<br>
-        ② 途中で帰る人は「退出」<br>
-        ③ 後から来た人は、その番号を「参加」に追加<br>
-        ④ 試合終了を押すと、実際に出た試合数だけ集計<br><br>
-        ※番号は<strong>1～30番</strong>まで使えます。
-      </div>
-    </div>
-  `;
-}
-
-function renderNumberSessionScreen(){
   const s=state.session;
-  const active=activeParticipants();
-  const left=Object.values(s.participants).filter(p=>p.status==='left');
+  const active=activeParticipants().sort((a,b)=>Number(a.number)-Number(b.number));
+  const left=Object.values(s.participants).filter(p=>p.status==='left')
+    .sort((a,b)=>Number(a.number)-Number(b.number));
   const joined=new Set(Object.keys(s.participants).map(String));
   const availableNumbers=Array.from({length:30},(_,i)=>i+1)
     .filter(n=>!joined.has(numberId(n)));
-  const runnable=runnableMatchNos();
-  const pending=s.matches.filter(m=>m.status!=='done');
-  const done=s.matches.filter(m=>m.status==='done');
-  const freeCourts=courtsFreeCount();
-  const stats=Object.values(s.participants).sort((a,b)=>
-    Number(a.number||999)-Number(b.number||999)
-  );
+  const stats=Object.values(s.participants).sort((a,b)=>Number(a.number||999)-Number(b.number||999));
 
   return `
     <div class="panel">
       <div class="sessionTop">
         <div>
-          <h2>本日の参加状況</h2>
-          <p class="sub" style="margin-bottom:2px;">
-            参加中 <strong>${active.length}人</strong> ／
-            ${state.courtCount}面 ／ 空き ${freeCourts}面
-          </p>
+          <h2>本日の参加者</h2>
+          <p class="sub" style="margin-bottom:2px;">参加中 <strong>${active.length}人</strong> ／ ${state.courtCount}面</p>
         </div>
-        <button class="btn primary" id="addMatchBtn" ${active.length>=4?'':'disabled'}>＋ 試合を追加</button>
       </div>
       <div class="numberRows" style="margin-top:12px;">
         ${active.length===0 ? `<div class="empty">参加中の番号がありません。</div>` :
-          active.sort((a,b)=>Number(a.number)-Number(b.number)).map(p=>`
+          active.map(p=>`
             <div class="numberRow">
               <div>
                 <span class="bigNum">${escapeHtml(p.name)}</span>
@@ -1128,7 +1081,7 @@ function renderNumberSessionScreen(){
         <div style="margin-top:14px;">
           <div class="numberHint" style="margin-bottom:7px;">退出済み</div>
           <div class="numberRows">
-            ${left.sort((a,b)=>Number(a.number)-Number(b.number)).map(p=>`
+            ${left.map(p=>`
               <div class="numberRow">
                 <div>
                   <span class="bigNum">${escapeHtml(p.name)}</span>
@@ -1142,59 +1095,107 @@ function renderNumberSessionScreen(){
     </div>
 
     <div class="panel">
-      <div class="sessionTop">
-        <div>
-          <h2>試合表</h2>
-          <p class="sub" style="margin:0;">「実施中」にした試合の人は次の試合に入りません。</p>
-        </div>
-        <button class="btn ghost sm" id="courtCountApplyBtn">コート数変更</button>
-      </div>
-      <div class="row" style="max-width:140px;margin-top:10px;">
+      <h2>コート数</h2>
+      <p class="sub">同時に使えるコート数です。</p>
+      <div class="row" style="max-width:140px;">
         <input type="number" id="courtCountInputLive" min="1" max="10" value="${state.courtCount}">
+        <button class="btn ghost sm" id="courtCountApplyBtn">変更</button>
       </div>
-
-      ${runnable.length>0 ? `
-        <div class="panel" style="background:#FFF8E6;border:1.5px solid var(--gold);margin-top:12px;margin-bottom:10px;">
-          <p class="sub" style="margin:0;color:var(--ink);">
-            <b>▶ 今すぐ実施できる試合：</b>第${runnable.join('試合・第')}試合
-          </p>
-        </div>` : ''}
-
-      ${pending.length===0
-        ? `<div class="empty"><div class="icon">🏸</div>まだ試合がありません。<br>「＋ 試合を追加」から作成してください。</div>`
-        : `<div class="matchList">${pending.map(m=>renderMatchRow(m,s,runnable.includes(m.no))).join('')}</div>`}
     </div>
-
-    ${done.length>0 ? `
-      <details class="panel">
-        <summary style="cursor:pointer;font-weight:700;color:var(--ink-soft);font-size:13px;">
-          終了した試合（${done.length}件）
-        </summary>
-        <div class="matchList" style="margin-top:10px;">
-          ${done.slice().reverse().map(m=>renderMatchRow(m,s,false)).join('')}
-        </div>
-      </details>` : ''}
 
     <div class="panel">
       <h2>参加者ごとの試合数</h2>
       <table class="stats">
         <thead><tr><th>番号</th><th>試合数</th><th>状態</th></tr></thead>
         <tbody>
-          ${stats.map(p=>`
-            <tr>
-              <td>${escapeHtml(p.name)}</td>
-              <td class="num">${p.gamesPlayed}</td>
-              <td><span class="statusPill ${p.status==='active'?'active':'left'}">
-                ${p.status==='active'?'参加中':'退出'}
-              </span></td>
-            </tr>`).join('')}
+          ${stats.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td class="num">${p.gamesPlayed}</td><td><span class="statusPill ${p.status==='active'?'active':'left'}">${p.status==='active'?'参加中':'退出'}</span></td></tr>`).join('')}
         </tbody>
       </table>
     </div>
 
-    <button class="btn danger block" id="endSessionBtn">
-      本日の練習を終了してリセット
-    </button>
+    <button class="btn danger block" id="endSessionBtn">本日の練習を終了してリセット</button>
+  `;
+}
+
+function renderMatchScreen(){
+  if(!state.session){
+    return `<div class="panel"><div class="empty"><div class="icon">🏸</div>まず「参加者管理」タブで本日の参加者を設定し、練習を開始してください。</div></div>`;
+  }
+
+  const s=state.session;
+  const active=activeParticipants();
+  const runnable=runnableMatchNos();
+  const pending=s.matches.filter(m=>m.status!=='done');
+  const done=s.matches.filter(m=>m.status==='done');
+  const freeCourts=courtsFreeCount();
+
+  return `
+    <div class="panel">
+      <div class="sessionTop">
+        <div>
+          <h2>試合追加</h2>
+          <p class="sub" style="margin:0;">参加中 ${active.length}人 ／ ${state.courtCount}面 ／ 空き ${freeCourts}面</p>
+        </div>
+        <button class="btn primary" id="addMatchBtn" ${active.length>=4?'':'disabled'}>＋ 試合を追加</button>
+      </div>
+      <p class="sub" style="margin-top:10px;">試合を追加すると、下の試合表にすぐ反映されます。</p>
+    </div>
+
+    <div class="panel">
+      <div class="sessionTop">
+        <div>
+          <h2>試合表</h2>
+          <p class="sub" style="margin:0;">「実施中」にした試合の人は次の試合に入りません。</p>
+        </div>
+      </div>
+
+      ${runnable.length>0 ? `
+        <div class="panel" style="background:#FFF8E6;border:1.5px solid var(--gold);margin-top:12px;margin-bottom:10px;">
+          <p class="sub" style="margin:0;color:var(--ink);"><b>▶ 今すぐ実施できる試合：</b>第${runnable.join('試合・第')}試合</p>
+        </div>` : ''}
+
+      ${pending.length===0
+        ? `<div class="empty"><div class="icon">🏸</div>まだ試合がありません。<br>上の「＋ 試合を追加」から作成してください。</div>`
+        : `<div class="matchList">${pending.map(m=>renderMatchRow(m,s,runnable.includes(m.no))).join('')}</div>`}
+    </div>
+
+    ${done.length>0 ? `
+      <details class="panel">
+        <summary style="cursor:pointer;font-weight:700;color:var(--ink-soft);font-size:13px;">終了した試合（${done.length}件）</summary>
+        <div class="matchList" style="margin-top:10px;">${done.slice().reverse().map(m=>renderMatchRow(m,s,false)).join('')}</div>
+      </details>` : ''}
+  `;
+}
+
+function renderNumberStartScreen(){
+  const defaultNumbers = Array.from({length:10},(_,i)=>i+1);
+  return `
+    <div class="panel">
+      <div class="sessionTop">
+        <div>
+          <h2>今日の参加者をセット</h2>
+          <p class="sub" style="margin-bottom:4px;">名前登録は不要です。参加する番号をタップしてください。</p>
+        </div>
+        <div class="sessionCount"><span id="selectedNumberCount">10</span>人</div>
+      </div>
+      <div class="numberGrid" id="startNumberGrid">
+        ${Array.from({length:30},(_,i)=>{
+          const n=i+1, selected=defaultNumbers.includes(n);
+          return `<button type="button" class="numberBtn ${selected?'selected':''}" data-action="toggleStartNumber" data-number="${n}">${n}</button>`;
+        }).join('')}
+      </div>
+      <div class="numberHint">最初は<strong>1～10番</strong>が選択されています。11番以降もタップすれば追加できます。</div>
+    </div>
+    <div class="panel">
+      <h2>コート数</h2>
+      <p class="sub">同時に使えるコート数です。</p>
+      <div class="row" style="max-width:140px;"><input type="number" id="courtCountInput" min="1" max="10" value="${state.courtCount}"></div>
+    </div>
+    <button class="btn primary block" id="startSessionBtn" style="font-size:15px;padding:14px;">本日の練習を開始する</button>
+    <div class="panel" style="margin-top:14px;">
+      <h2>使い方</h2>
+      <div class="numberHint" style="font-size:12.5px;">① 最初に参加者を番号で選択<br>② 途中で帰る人は「退出」<br>③ 後から来た人は、その番号を「参加」に追加<br>④ 試合終了を押すと、実際に出た試合数だけ集計<br><br>※番号は<strong>1～30番</strong>まで使えます。</div>
+    </div>
   `;
 }
 
@@ -1224,6 +1225,14 @@ function escapeHtml(str){
 
 /* ---------- events ---------- */
 function bindEvents(){
+
+  // 2タブ切替
+  document.querySelectorAll('nav.tabs button[data-tab]').forEach(btn=>{
+    btn.onclick=()=>{
+      activeTab=btn.dataset.tab;
+      render();
+    };
+  });
 
   // 開始前：番号選択
   document.querySelectorAll('[data-action="toggleStartNumber"]').forEach(btn=>{
