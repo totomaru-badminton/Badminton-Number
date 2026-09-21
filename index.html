@@ -1151,7 +1151,7 @@ function renderMatchScreen(){
     </div>
 
     ${done.length>0 ? `
-      <details class="panel" open>
+      <details class="panel">
         <summary style="cursor:pointer;font-weight:700;color:var(--ink-soft);font-size:13px;">終了した試合（${done.length}件）</summary>
         <div class="matchList" style="margin-top:10px;">${done.slice().reverse().map(m=>renderMatchRow(m,s,false)).join('')}</div>
       </details>
